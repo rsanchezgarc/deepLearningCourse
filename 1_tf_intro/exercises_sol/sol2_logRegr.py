@@ -28,20 +28,20 @@ x_train, x_validation, y_train, y_validation = cross_validation.train_test_split
 
 #Model definition
 
-inputPh= tf.placeholder(dtype=tf.float32, shape=[None ]+ list(x_train.shape[1:]) , name="inputData")
-labelsPh= tf.placeholder(dtype=tf.float32, shape=[None, y_train.shape[-1]], name="labelsData")
+inputPh= tf.placeholder(dtype=tf.float32, shape=[None ]+ list(x_train.shape[1:]) , name="inputData")  #shape= N_Examples x 32 x 32 x 3
+labelsPh= tf.placeholder(dtype=tf.float32, shape=[None, y_train.shape[-1]], name="labelsData") #shape= N_Examples x 10
 
-input_flatten= tf.reshape(inputPh, [-1, np.prod(x_train.shape[1:])])
+input_flatten= tf.reshape(inputPh, [-1, np.prod(x_train.shape[1:])]) #shape= N_Examples x (32*32*3) = N_Examples x 3072
 
-w= tf.get_variable(name="weights", shape=[input_flatten.shape[1], y_train.shape[-1]], dtype=tf.float32, 
+w= tf.get_variable(name="weights", shape=[input_flatten.shape[1], y_train.shape[-1]], dtype=tf.float32,   #shape= 3072 x 10
                    initializer=tf.truncated_normal_initializer(mean=0.0, stddev=0.1, dtype=tf.float32, seed=None),
                    regularizer=None, trainable=True)
             
-b= tf.get_variable(name="bias", shape=[ y_train.shape[-1] ], dtype=tf.float32, 
+b= tf.get_variable(name="bias", shape=[ y_train.shape[-1] ], dtype=tf.float32,   #shape=  10
                    initializer=tf.constant_initializer(value=0.01, dtype=tf.float32),
                    regularizer=None, trainable=True)
 
-logits= tf.matmul(input_flatten,w) + b
+logits= tf.matmul(input_flatten,w) + b  #shape= N_Examples x 10
 y_pred= tf.nn.softmax(logits)
 
 error = -tf.reduce_sum(labelsPh * tf.log(y_pred+ 1e-10), 1)

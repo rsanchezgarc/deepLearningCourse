@@ -38,21 +38,21 @@ print(x_train.shape, y_train.shape)
 
 #Model definition
 
-inputPh= tf.placeholder(dtype=tf.float32, shape=[None, x_train.shape[1]], name="inputData")
+inputPh= tf.placeholder(dtype=tf.float32, shape=[None, x_train.shape[1]], name="inputData") #shape= N_Examples x nFeats
 labelsPh= tf.placeholder(dtype=tf.float32, shape=[None, 1], name="labelsData")
 
 with tf.variable_scope("hidden_layer"):
-  w= tf.get_variable(name="weights", shape=[x_train.shape[1],N_HIDDEN], dtype=tf.float32, 
+  w= tf.get_variable(name="weights", shape=[x_train.shape[1],N_HIDDEN], dtype=tf.float32, #shape= nFeats x N_HIDDEN
                      initializer=tf.truncated_normal_initializer(mean=0.0, stddev=0.1, dtype=tf.float32, seed=None),
                      regularizer=None, trainable=True)
               
-  b= tf.get_variable(name="bias", shape=[N_HIDDEN], dtype=tf.float32, 
+  b= tf.get_variable(name="bias", shape=[N_HIDDEN], dtype=tf.float32,  #shape= N_HIDDEN
                      initializer=tf.constant_initializer(value=0.01, dtype=tf.float32),
                      regularizer=None, trainable=True)
   h1_out= tf.nn.relu( tf.matmul(inputPh,w) + b)
   
 with tf.variable_scope("output_layer"):
-  w= tf.get_variable(name="weights", shape=[N_HIDDEN,1], dtype=tf.float32, 
+  w= tf.get_variable(name="weights", shape=[N_HIDDEN,1], dtype=tf.float32, #shape=  N_HIDDEN x 1
                      initializer=tf.truncated_normal_initializer(mean=0.0, stddev=0.1, dtype=tf.float32, seed=None),
                      regularizer=None, trainable=True)
               
@@ -62,7 +62,7 @@ with tf.variable_scope("output_layer"):
   y_pred= tf.matmul(h1_out,w) + b
 
 
-error = tf.reduce_mean(( tf.square(labelsPh -y_pred) ) )
+error = tf.reduce_mean(( tf.square(labelsPh -y_pred) ) ) #shape= N_Examples x 1
 #error = tf.losses.mean_squared_error(labelsPh, y_pred) #Equivalent but prefered
 
 optimizer= tf.train.GradientDescentOptimizer(learning_rate= LEARNING_RATE)

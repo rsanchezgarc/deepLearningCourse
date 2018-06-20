@@ -22,7 +22,7 @@ x_train, x_validation, y_train, y_validation = cross_validation.train_test_split
 print(x_train.shape, y_train.shape)
 
 
-#FUNCTION TO EVALUATE HOW GOOD OR MODEL IS
+#FUNCTION TO EVALUATE HOW GOOD OUR MODEL IS
 def coefficient_of_determination(y_true,y_pred):
   def squared_error(y_true,y_pred):
     return np.sum((y_pred - y_true) * (y_pred - y_true))
@@ -32,19 +32,19 @@ def coefficient_of_determination(y_true,y_pred):
   return 1 - (squared_error_regr/squared_error_y_mean)
 
 #Model definition
-
-inputPh= tf.placeholder(dtype=tf.float32, shape=[None, x_train.shape[1]], name="inputData")
+                                                
+inputPh= tf.placeholder(dtype=tf.float32, shape=[None, x_train.shape[1]], name="inputData") #shape= N_inputs x 3
 labelsPh= tf.placeholder(dtype=tf.float32, shape=[None, 1], name="labelsData")
 
-w= tf.get_variable(name="weights", shape=[x_train.shape[1],1], dtype=tf.float32, 
+w= tf.get_variable(name="weights", shape=[x_train.shape[1],1], dtype=tf.float32, #shape= 3 x 1
                    initializer=tf.truncated_normal_initializer(mean=0.0, stddev=0.1, dtype=tf.float32, seed=None),
                    regularizer=None, trainable=True)
             
-b= tf.get_variable(name="bias", shape=[1], dtype=tf.float32, 
+b= tf.get_variable(name="bias", shape=[1], dtype=tf.float32,  #shape= 1
                    initializer=tf.constant_initializer(value=0.01, dtype=tf.float32),
                    regularizer=None, trainable=True)
 
-y_pred= tf.matmul(inputPh,w) + b
+y_pred= tf.matmul(inputPh,w) + b #shape= N_inputs x 1
 
 
 error = tf.reduce_mean(( tf.square(labelsPh -y_pred) ) )

@@ -30,33 +30,34 @@ x_train, x_validation, y_train, y_validation = cross_validation.train_test_split
 
 #Model definition
 
-inputPh= tf.placeholder(dtype=tf.float32, shape=[None ]+ list(x_train.shape[1:]) , name="inputData")
-labelsPh= tf.placeholder(dtype=tf.float32, shape=[None, y_train.shape[-1]], name="labelsData")
+inputPh= tf.placeholder(dtype=tf.float32, shape=[None ]+ list(x_train.shape[1:]) , name="inputData") #shape= N_Examples x 32 x 32 x 3
+labelsPh= tf.placeholder(dtype=tf.float32, shape=[None, y_train.shape[-1]], name="labelsData")     #shape= N_Examples x 10
 tf.summary.image('inputImage', inputPh)
 with tf.variable_scope("flatten_layer"):
-  input_flatten= tf.reshape(inputPh, [-1, np.prod(x_train.shape[1:])])
+  input_flatten= tf.reshape(inputPh, [-1, np.prod(x_train.shape[1:])]) #shape= N_Examples x (32*32*3) = N_Examples x 3072
 
 with tf.variable_scope("hidden_layer"):
-  w= tf.get_variable(name="weights", shape=[input_flatten.get_shape().as_list()[1], N_HIDDEN], dtype=tf.float32, 
+  w= tf.get_variable(name="weights", shape=[input_flatten.get_shape().as_list()[1], N_HIDDEN], dtype=tf.float32,    #shape= 3072 x N_HIDDEN
                      initializer=tf.truncated_normal_initializer(mean=0.0, stddev=0.1, dtype=tf.float32, seed=None),
                      regularizer=None, trainable=True)
               
   b= tf.get_variable(name="bias", shape=[N_HIDDEN], dtype=tf.float32, 
                      initializer=tf.constant_initializer(value=0.01, dtype=tf.float32),
                      regularizer=None, trainable=True)
-  h1_out= tf.nn.relu( tf.matmul(input_flatten,w) + b)
+  h1_out= tf.nn.relu( tf.matmul(input_flatten,w) + b) #shape= N_Examples x N_HIDDEN
 
 with tf.variable_scope("output_layer"):
-  w= tf.get_variable(name="weights", shape=[h1_out.get_shape().as_list()[1], y_train.shape[-1]], dtype=tf.float32, 
+  w= tf.get_variable(name="weights", shape=[h1_out.get_shape().as_list()[1], y_train.shape[-1]], dtype=tf.float32,  #shape= N_HIDDEN x 10
                      initializer=tf.truncated_normal_initializer(mean=0.0, stddev=0.1, dtype=tf.float32, seed=None),
                      regularizer=None, trainable=True)
               
   b= tf.get_variable(name="bias", shape=[ y_train.shape[-1] ], dtype=tf.float32, 
                      initializer=tf.constant_initializer(value=0.01, dtype=tf.float32),
                      regularizer=None, trainable=True)
-  logits= tf.matmul(h1_out,w) + b
+  logits= tf.matmul(h1_out,w) + b #shape= N_Examples x 10
   y_pred= tf.nn.softmax(logits)
 tf.summary.histogram('weights', w)
+#cross entropy
 #error = -tf.reduce_sum(labelsPh * tf.log(y_pred+ 1e-10), 1)
 error = tf.losses.softmax_cross_entropy(labelsPh, logits) #Equivalent but prefered for numerical estability
 
