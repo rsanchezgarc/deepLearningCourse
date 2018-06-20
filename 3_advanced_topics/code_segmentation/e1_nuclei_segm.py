@@ -1,8 +1,8 @@
 import os, sys
-import random
 import gzip
 import numpy as np
 import json
+import random
 import matplotlib.pyplot as plt
 from sklearn import cross_validation
 import keras
@@ -13,7 +13,7 @@ from keras.layers.convolutional import Conv2D, Conv2DTranspose, UpSampling2D
 from keras.layers.pooling import MaxPooling2D
 from keras.layers.merge import concatenate
 from keras import backend as K
-
+from keras.preprocessing.image import ImageDataGenerator
 import tensorflow as tf
 
 # Set some parameters
@@ -21,12 +21,13 @@ IMG_WIDTH = 128
 IMG_HEIGHT = 128
 IMG_CHANNELS = 3
 LEARNING_RATE= 1e-3
+BATCH_SIZE=8
+N_EPOCHS= 700
 
-MODEL_TYPE= 1  #1 for encoder-decoder; 2 for Unet-like
+MODEL_TYPE= 2  #1 for encoder-decoder; 2 for Unet-like
 
-seed = 42
-random.seed = seed
-np.random.seed = seed
+seed_ = 42 #MANDATORY to fix seed as we will want image and mask to be equally transformed
+random.seed(seed_)
 
 #Load data
 with gzip.GzipFile("segmentationData.json.gz", 'r') as f: 
@@ -34,14 +35,40 @@ with gzip.GzipFile("segmentationData.json.gz", 'r') as f:
   json_str = json_bytes.decode('utf-8')           
   data = json.loads(json_str)       
 
-x_train= np.array(data["X"])/255.
+x_train= np.array(data["X"])
+x_train= x_train /255.
 y_train= np.array(data["Y"]).astype(np.int32)
 
 print(x_train.shape, y_train.shape)
 
 x_train, x_test, y_train, y_test = cross_validation.train_test_split(
-                                                  x_train, y_train, test_size=0.1, random_state=121)
-#Check if training data looks all right
+                                                  x_train, y_train, test_size=0.1, random_state=seed_)
+                                                  
+
+x_train, x_val, y_train, y_val = cross_validation.train_test_split(
+                                                  x_train, y_train, test_size=0.1, random_state=seed_)                                                  
+
+def myCustomImageAugm(one_image):
+  '''
+  input is np.array of shape (n,m,3)
+  '''                            
+  if one_image.shape[-1]==3:
+    if bool(random.getrandbits(1)):
+      #switch colors
+      one_image= one_image[:,:, random.sample([0,1,2],3)]
+  return one_image
+  
+
+data_gen_params = { 'rotation_range':0, 'width_shift_range':0.0,'height_shift_range':0.05,
+                    'zoom_range':0.0, 'horizontal_flip':True, 'vertical_flip':True, 'fill_mode':'reflect',
+                    'preprocessing_function':myCustomImageAugm }
+x_train_datagen = ImageDataGenerator(**data_gen_params)
+y_train_datagen = ImageDataGenerator(**data_gen_params)
+
+x_train_datagen.fit(x_train, augment=True, seed= seed_) #same seed needed
+y_train_datagen.fit(y_train, augment=True, seed= seed_)
+                                                  
+#Check if training data looks ok
 ix = random.randint(0, len(x_train))
 fig= plt.figure()
 fig.add_subplot(1, 2, 1)
@@ -136,14 +163,21 @@ model.summary()
 
 
 # Fit model
-earlystopper = keras.callbacks.EarlyStopping(patience=7, verbose=1)
-checkpointer = keras.callbacks.ModelCheckpoint('model-dsbowl2018-1.h5', verbose=1, save_best_only=True)
-reduLR = keras.callbacks.ReduceLROnPlateau(monitor='val_loss', factor=0.1, patience=4, verbose=0, cooldown=1, min_lr=0)
-results = model.fit(x_train, y_train, validation_split=0.1, batch_size=8, epochs=70, 
-                    callbacks=[earlystopper, checkpointer])
+earlystopper = keras.callbacks.EarlyStopping(patience=10, verbose=1)
+checkpointer = keras.callbacks.ModelCheckpoint('model-nucle1.hdf5', verbose=1, save_best_only=True)
+reduLR = keras.callbacks.ReduceLROnPlateau(monitor='val_loss', factor=0.1, patience=4, verbose=1, cooldown=1, min_lr=0)
+#no data augmentation
+#results= model.fit(x_train, y_train, validation_data=(x_val, y_val),  batch_size=BATCH_SIZE, 
+#                   epochs=N_EPOCHS, callbacks=[earlystopper, checkpointer, reduLR])
+#use data augmentation
+results= model.fit_generator( zip(x_train_datagen.flow(x_train, batch_size=BATCH_SIZE, seed=seed_), 
+                                  y_train_datagen.flow(y_train, batch_size=BATCH_SIZE, seed=seed_)) ,
+                              steps_per_epoch=len(x_train) / BATCH_SIZE,
+                              validation_data=(x_val, y_val), 
+                              epochs=N_EPOCHS, callbacks=[earlystopper, checkpointer, reduLR])
                     
 scores= model.evaluate(x_test, y_test)
-print("Test loss %f mean_iou %f\n\n"%tuple(scores))
+print("\n++++++++++\nTest loss %f mean_iou %f\n\n"%tuple(scores))
 
 preds_test = model.predict(x_test, verbose=1)
 preds_test_t = (preds_test > 0.5).astype(np.uint8)
